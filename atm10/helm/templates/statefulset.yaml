@@ -9,7 +9,7 @@ metadata:
     {{- include "atm10.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "atm10.name" . }}
-  replicas: 1
+  replicas: {{ .Values.replicas | default 1 }}
   selector:
     matchLabels:
       {{- include "atm10.selectorLabels" . | nindent 6 }}
