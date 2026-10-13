@@ -56,7 +56,7 @@ install_pack() {
 
     # Copy the new files in (including dotfiles); keep our server.properties if we have one
     if [[ -f server.properties ]]; then rm -f "$src/server.properties"; fi
-    cp -a "$src"/. "$DATA"/
+    cp -R "$src"/. "$DATA"/      # no -a: /data itself may be root-owned (timestamps cannot be set)
     cp user_jvm_args.txt "$PACK_JVM_ARGS" 2>/dev/null || : > "$PACK_JVM_ARGS"
 
     log "Installing NeoForge $neoforge"

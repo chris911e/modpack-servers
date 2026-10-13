@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/chris911e/atm10
   tag: "8.2"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 # Minecraft
 eula: true
