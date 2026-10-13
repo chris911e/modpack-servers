@@ -1,0 +1,111 @@
+{{- if not .Values.eula }}
+{{- fail "You must accept the Minecraft EULA: set eula: true in values.yaml" }}
+{{- end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "atm10.name" . }}
+  labels:
+    {{- include "atm10.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "atm10.name" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "atm10.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "atm10.selectorLabels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 120   # time to save the world on shutdown
+      securityContext:
+        runAsUser: 99
+        runAsGroup: 100
+        fsGroup: 100                        # lets the minecraft user write to the volume
+        fsGroupChangePolicy: OnRootMismatch
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: minecraft
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # lets you use the server console: kubectl attach -it <pod>
+          stdin: true
+          tty: true
+          env:
+            - name: EULA
+              value: "true"
+            - name: MOTD
+              value: {{ .Values.motd | quote }}
+            - name: MAX_PLAYERS
+              value: {{ .Values.maxPlayers | quote }}
+            - name: DIFFICULTY
+              value: {{ .Values.difficulty | quote }}
+            - name: VIEW_DISTANCE
+              value: {{ .Values.viewDistance | quote }}
+            - name: ALLOW_FLIGHT
+              value: {{ .Values.allowFlight | quote }}
+            - name: ONLINE_MODE
+              value: {{ .Values.onlineMode | quote }}
+            - name: ENABLE_WHITELIST
+              value: {{ .Values.whitelist.enabled | quote }}
+            - name: WHITELIST_USERS
+              value: {{ join "," (.Values.whitelist.users | default list) | quote }}
+            - name: OP_USERS
+              value: {{ join "," (.Values.ops | default list) | quote }}
+            - name: JVM_OPTS
+              value: {{ printf "-Xms%s -Xmx%s %s" .Values.memory .Values.memory .Values.jvmOpts | trim | quote }}
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: minecraft
+              containerPort: 25565
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            tcpSocket:
+              port: minecraft
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          livenessProbe:
+            tcpSocket:
+              port: minecraft
+            periodSeconds: 30
+            failureThreshold: 6
+          readinessProbe:
+            tcpSocket:
+              port: minecraft
+            periodSeconds: 15
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

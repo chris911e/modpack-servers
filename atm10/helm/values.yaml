@@ -1,0 +1,61 @@
+image:
+  repository: ghcr.io/chris911e/atm10
+  tag: "8.2"
+  pullPolicy: IfNotPresent
+
+# Minecraft
+eula: true
+
+motd: "All the Mods 10"
+maxPlayers: 4
+difficulty: normal
+viewDistance: 8
+allowFlight: true
+onlineMode: true
+
+whitelist:
+  enabled: true
+  users: [piffels]
+
+ops: []
+
+# Java
+memory: 12G
+jvmOpts: >-
+  -XX:+UseG1GC
+  -XX:+ParallelRefProcEnabled
+  -XX:MaxGCPauseMillis=200
+  -XX:+UnlockExperimentalVMOptions
+  -XX:+DisableExplicitGC
+  -XX:G1NewSizePercent=30
+  -XX:G1MaxNewSizePercent=40
+  -XX:G1HeapRegionSize=8M
+  -XX:G1ReservePercent=20
+  -XX:InitiatingHeapOccupancyPercent=15
+
+timezone: Europe/Zurich
+
+# Kubernetes
+resources:
+  requests:
+    cpu: "2"
+    memory: 14Gi
+  limits:
+    memory: 14Gi
+
+persistence:
+  size: 50Gi
+  storageClass: ""
+
+service:
+  type: LoadBalancer
+  port: 25565
+  nodePort: null
+
+startupProbe:
+  periodSeconds: 20
+  failureThreshold: 90
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
